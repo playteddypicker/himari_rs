@@ -1,3 +1,14 @@
+# himari_rs
+
+이게 뭐냐면..  
+알려드렸습니다~
+
+음악봇(discordMusicbotTemplate https://github.com/playteddypicker/discordMusicbotTemplate)  
+Rust로 새로 짜고있는거
+
+기능 여러개 넣을거임  
+구상해둔거 많음ㅋ
+
 ![ㅎㅁㄹ](https://media.discordapp.net/attachments/934297359209340939/1026216079619539114/unknown.png)
 
 # TODO LIST
