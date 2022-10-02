@@ -1,10 +1,14 @@
-use serenity::async_trait;
-use serenity::builder::{CreateApplicationCommand, CreateEmbed};
-use serenity::client::Context;
-use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
-use serenity::model::application::interaction::InteractionResponseType;
-use serenity::model::{
-    permissions::Permissions, prelude::interaction::application_command::CommandDataOption,
+use serenity::{
+    async_trait,
+    builder::{CreateApplicationCommand, CreateEmbed},
+    client::Context,
+    model::{
+        application::interaction::{
+            application_command::ApplicationCommandInteraction, InteractionResponseType,
+        },
+        permissions::Permissions,
+        prelude::interaction::application_command::CommandDataOption,
+    },
 };
 
 use crate::command_handler::commands;

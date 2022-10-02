@@ -1,7 +1,7 @@
-use crate::command_handler::command_handler;
-use crate::command_handler::command_handler::DefaultCommandMethods;
-use crate::command_handler::commands;
-use crate::event_handler::events;
+use crate::{
+    command_handler::{command_handler, command_handler::DefaultCommandMethods, commands},
+    event_handler::events,
+};
 
 use serenity::{
     async_trait,

@@ -1,10 +1,11 @@
-use crate::command_handler::command_handler::CommandReturnValue;
-use crate::command_handler::command_handler::DefaultCommandMethods;
-use serenity::async_trait;
-use serenity::builder::CreateApplicationCommand;
-use serenity::client::Context;
-use serenity::model::{
-    permissions::Permissions, prelude::interaction::application_command::CommandDataOption,
+use crate::command_handler::command_handler::{CommandReturnValue, DefaultCommandMethods};
+use serenity::{
+    async_trait,
+    builder::CreateApplicationCommand,
+    client::Context,
+    model::{
+        permissions::Permissions, prelude::interaction::application_command::CommandDataOption,
+    },
 };
 
 pub struct Start;
