@@ -45,8 +45,9 @@ impl EventHandler for DiscordEventHandler {
             Interaction::ApplicationCommand(command) => {
                 command_handler::seperate_command(command, &ctx).await;
             }
+            Interaction::MessageComponent(component) => {}
             _ => {
-                println!("asdf");
+                println!("Interaction created, but not handled on this case.");
             }
         }
     }

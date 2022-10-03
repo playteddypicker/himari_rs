@@ -4,6 +4,7 @@ use std::env;
 
 mod event_handler;
 mod command_handler;
+mod utils;
 
 #[tokio::main]
 async fn main() {

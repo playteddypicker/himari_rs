@@ -9,13 +9,18 @@ use serenity::{
         permissions::Permissions,
         prelude::interaction::application_command::CommandDataOption,
     },
+    utils::CustomMessage,
 };
 
 use crate::command_handler::commands;
+use crate::utils::frameworks::reaction_pages;
+
+use std::cell::RefCell;
 
 pub enum CommandReturnValue {
     SingleString(String),
     SingleEmbed(CreateEmbed),
+    ReactionPages(RefCell<Vec<CreateEmbed>>),
 }
 
 #[async_trait]
@@ -44,6 +49,9 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                 .interaction_response_data(|msg| match cmd_result {
                     CommandReturnValue::SingleString(content) => msg.content(content),
                     CommandReturnValue::SingleEmbed(embed) => msg.set_embed(embed),
+                    CommandReturnValue::ReactionPages(embeds) => {
+                        reaction_pages::reaction_pages(msg, &command.id, embeds.into_inner())
+                    }
                 })
         })
         .await

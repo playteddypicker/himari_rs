@@ -11,6 +11,15 @@ Rust로 새로 짜고있는거
 
 ![ㅎㅁㄹ](https://media.discordapp.net/attachments/934297359209340939/1026216079619539114/unknown.png)
 
+## 개발일지
+
+#### 2020.10.04
+
+- 페이지처럼 넘기는 임베드 프레임워크 만드는중인데 수명때매 걸림
+- interaction 만들때 InteractionResponseData가 if let 구문 끝나면 사라지는데 이를 await으로 수명을 고정시켜야함
+- 그래야 미리 해제가 안되서 interaction failed(메모리가 이미 해제되서 강제로 없어짐)가 뜨는 에러를 방지할수있음
+- dynamic Future + lifetime 좀 엄밀하게 공부해놔야 해결가능함
+
 # TODO LIST
 
 **Event Handler**
