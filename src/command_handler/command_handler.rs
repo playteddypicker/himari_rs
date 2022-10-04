@@ -9,7 +9,6 @@ use serenity::{
         permissions::Permissions,
         prelude::interaction::application_command::CommandDataOption,
     },
-    utils::CustomMessage,
 };
 
 use crate::command_handler::commands;
@@ -21,6 +20,7 @@ pub enum CommandReturnValue {
     SingleString(String),
     SingleEmbed(CreateEmbed),
     ReactionPages(RefCell<Vec<CreateEmbed>>),
+    MultiEmbedFramework(), //매개변수 뭘로할지 생각중
 }
 
 #[async_trait]
@@ -40,25 +40,67 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
     let cmd_result = match command.data.name.as_str() {
         "start" => commands::start::Start::run(&ctx, &command.data.options).await,
         "아무말" => commands::saysomething::SaySomething::run(&ctx, &command.data.options).await,
+        "reactiontest" => {
+            commands::reactiontest::ReactionTest::run(&ctx, &command.data.options).await
+        }
         _ => CommandReturnValue::SingleString("좆까".to_string()),
     };
 
-    if let Err(why) = command
-        .create_interaction_response(&ctx.http, |res| {
-            res.kind(InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|msg| match cmd_result {
-                    CommandReturnValue::SingleString(content) => msg.content(content),
-                    CommandReturnValue::SingleEmbed(embed) => msg.set_embed(embed),
-                    CommandReturnValue::ReactionPages(embeds) => {
-                        reaction_pages::reaction_pages(msg, &command.id, embeds.into_inner())
-                    }
+    match cmd_result {
+        //단순 문자열 응답일때
+        CommandReturnValue::SingleString(content) => {
+            if let Err(why) = command
+                .create_interaction_response(&ctx.http, |res| {
+                    res.kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|msg| msg.content(&content))
                 })
-        })
-        .await
-    {
-        println!(
-            "Failed to send interaction responce : here's why\n {:?}",
-            why
-        );
+                .await
+            {
+                println!(
+                    "Failed to send Single-string \"{:?}\" from command \"{}\".",
+                    content, command.data.name
+                );
+                println!("here's why: {:?}", why);
+            }
+        }
+        //단순 임베드 하나 응답일 때
+        CommandReturnValue::SingleEmbed(embed) => {
+            if let Err(why) = command
+                .create_interaction_response(&ctx.http, |res| {
+                    res.kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|msg| msg.set_embed(embed.clone()))
+                })
+                .await
+            {
+                println!(
+                    "Failed to send single-embed \"{:#?}\" from command \"{}\".",
+                    embed, command.data.name
+                );
+                println!("here's why: {:?}", why);
+            }
+        }
+        //skippable한 페이지식 임베드로 되어있을때
+        CommandReturnValue::ReactionPages(embeds) => {
+            if let Err(why) = command
+                .create_interaction_response(&ctx.http, |res| {
+                    res.kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|msg| {
+                            msg.set_embed(embeds.clone().into_inner()[0].clone())
+                        })
+                })
+                .await
+            {
+                println!(
+                    "Failed to send reactive-embed \"{:#?}\" from command \"{}\".",
+                    embeds.into_inner(),
+                    command.data.name
+                );
+                println!("here's why: {:?}", why);
+            };
+            //여기서 발생한 ApplicationCommandInteraction은 더이상 편집 외엔 사용 안함
+            //그러므로 reaction_pages에 소유권 자체를 넘기면 해결
+            if let Err(why) = reaction_pages::reaction_pages(command).await {}
+        }
+        CommandReturnValue::MultiEmbedFramework() => {}
     }
 }

@@ -1,7 +1,10 @@
 use serenity::{
     async_trait,
     builder::{CreateEmbed, CreateInteractionResponseData},
-    model::{channel::Embed, id::InteractionId},
+    model::{
+        application::interaction::application_command::ApplicationCommandInteraction,
+        channel::Embed, id::InteractionId,
+    },
 };
 
 struct SkippableEmbed {
@@ -14,7 +17,7 @@ struct SkippableEmbed {
 
 impl SkippableEmbed {
     //current_idx가 total보다 작을때만 발생함
-    fn next(&self) {
+    fn next(&mut self) {
         self.current_idx = if self.current_idx + 1 < self.total {
             self.current_idx + 1
         } else {
@@ -22,7 +25,7 @@ impl SkippableEmbed {
         }
     }
 
-    fn prev(&self) {
+    fn prev(&mut self) {
         self.current_idx = if self.current_idx > 0 {
             self.current_idx - 1
         } else {
@@ -30,15 +33,15 @@ impl SkippableEmbed {
         }
     }
 
-    fn skip_end(&self) {
+    fn skip_end(&mut self) {
         self.current_idx = self.total - 1;
     }
 
-    fn skip_start(&self) {
+    fn skip_start(&mut self) {
         self.current_idx = 0;
     }
 
-    fn check_disable_button(&self) {
+    fn check_disable_button(&mut self) {
         self.button_disable_option = if self.current_idx + 1 == self.total {
             // <<, <만 활성화
             (false, false, true, true)
@@ -54,18 +57,16 @@ impl SkippableEmbed {
     }
 }
 
-pub fn reaction_pages(
-    msg: &'static mut CreateInteractionResponseData<'static>,
-    interaction_id: &InteractionId,
-    embeds: Vec<CreateEmbed>,
-) -> &'static mut CreateInteractionResponseData<'static> {
-    let pages = SkippableEmbed {
-        id: *interaction_id,
-        total: embeds.len(),
-        current_idx: 0,
-        embed_list: embeds,
-        button_disable_option: (true, true, true, true),
-    };
-
-    msg.set_embed(pages.embed_list[pages.current_idx])
+pub async fn reaction_pages(interaction: ApplicationCommandInteraction) -> Result<String, Err> {
+    //interaction을 edit해서 먼저 button component를 붙이기
+    //
+    //나중에 multi-embed framework랑 안겹치게 custom id 설정함
+    //
+    //filter로 거름
+    //
+    //+ button interaction 계속 받기. 5분동안만 시간 지나면 Ok() 반환
+    //
+    //만약 받는도중 에러나면 바로 Err 반환
+    //
+    //command_handler에서 Err 반환된거 처리하기(사용자에게 에러 문구 띄우기)
 }

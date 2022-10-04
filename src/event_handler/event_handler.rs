@@ -30,7 +30,12 @@ impl EventHandler for DiscordEventHandler {
             if let Err(_) = GuildId::set_application_commands(&guild.id, &ctx.http, |cmds| {
                 cmds.create_application_command(|c| commands::start::Start::register(c))
                     .create_application_command(|c| {
+                        //나중에 Start에 등록
                         commands::saysomething::SaySomething::register(c)
+                    })
+                    .create_application_command(|c| {
+                        //나중에 start에 등록
+                        commands::reactiontest::ReactionTest::register(c)
                     })
             })
             .await
