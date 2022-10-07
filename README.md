@@ -20,7 +20,68 @@ Rust로 새로 짜고있는거
 - 그래야 미리 해제가 안되서 interaction failed(메모리가 이미 해제되서 강제로 없어짐)가 뜨는 에러를 방지할수있음
 - dynamic Future + lifetime 좀 엄밀하게 공부해놔야 해결가능함
 
+#### 2020.10.07
+
+- 수명 관련 에러 해결. 임베드 데이터가 쓰이는 범위를 체크해서 그냥 그 자체를 넘기면 수명 체크 안해도 됨
+- reactionpages 구현 완료
+- 콘솔 에러를 log 크레이트를 이용해서 좀 더 가시적 가독성 좋게 보이게끔 함
+
 # TODO LIST
+
+```
+[ ] : 아직 안만듬
+[~] : 작업중
+[C] : 완료, 디버깅만 남음
+
+src/
+  utils/
+    [ ] music_info_search.rs
+    [ ] server_info.rs
+    [C] reaction_page.rs
+    [ ] timestamp.rs
+    [ ] lavalinik_get_info.rs
+    [ ] get_music_info.himari_rs
+  command_handler/
+    [~] command_handler.rs
+      music_cmd/
+        [ ] play.rs
+		[ ] pause.rs
+        [ ] skip.rs
+        [ ] stop.rs
+        [ ] eject.rs
+		[ ] queue.rs
+        [ ] nowplaying.rs
+        [ ] history.rs
+        [ ] loop.rs
+		[ ] move.rs
+        [ ] jump.rs
+		[ ] remove.rs
+		[ ] shuffle.rs
+		[ ] volume.rs
+	  server_player_cmd/
+		[ ] fast_setup.rs
+		[ ] setting.rs
+		[ ] get_server_info.rs
+	  playlist_cmd/
+		[ ] personal_playlist.rs
+		[ ] guild_playlist.rs
+		[ ] bot_playlist.rs
+	  util_cmd/
+	  	[~] start.rs
+	  other_cmd/
+	  	[C] saysomething.rs
+  event_handler/
+	[~] event_handler.rs
+	  events/
+		[ ] interaction_create_default_cmd.rs
+		[~] interaction_create.rs
+		[ ] voice_state_update.rs
+		[ ] channel_name_update.rs
+		[~] guild_create.rs
+		[ ] guild_delete.rs
+     	[ ] channel_delete.rs
+  [C] main.rs
+```
 
 **Event Handler**
 
@@ -31,9 +92,9 @@ Rust로 새로 짜고있는거
   - [x] Ready되면 콘솔에 띄우기
 - InteractionCreate
   - [x] Interaction 발생하면 Command인지 검사 후 Handler로 넘겨주기
-  - [ ] Interaction 발생하면 Button인지 검사 후
-    - [ ] Page 넘기기인지 검사
-    - [ ] Component Reaction인지 검사
+  - [x] Interaction 발생하면 Button인지 검사 후
+    - [x] Page 넘기기인지 검사
+    - [x] Component Reaction인지 검사
 - voiceStateUpdate
   - 나중에 추가 예정
 

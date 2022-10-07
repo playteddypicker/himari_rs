@@ -1,17 +1,25 @@
 use serenity::{
-    async_trait,
-    builder::{CreateEmbed, CreateInteractionResponseData},
+    builder::{CreateActionRow, CreateEmbed},
+    client::Context,
+    futures::StreamExt,
     model::{
-        application::interaction::application_command::ApplicationCommandInteraction,
-        channel::Embed, id::InteractionId,
+        application::{
+            component::ButtonStyle,
+            interaction::{
+                application_command::ApplicationCommandInteraction, InteractionResponseType,
+            },
+        },
+        channel::ReactionType,
     },
 };
 
+use std::time::Duration;
+
+use log::error;
+
 struct SkippableEmbed {
-    id: InteractionId,
     total: usize,
     current_idx: usize,
-    embed_list: Vec<CreateEmbed>,
     button_disable_option: (bool, bool, bool, bool),
 }
 
@@ -57,16 +65,131 @@ impl SkippableEmbed {
     }
 }
 
-pub async fn reaction_pages(interaction: ApplicationCommandInteraction) -> Result<String, Err> {
+fn set_reaction_page_action_row(reactive_interaction: &SkippableEmbed) -> CreateActionRow {
+    let mut row = CreateActionRow::default();
+    row.create_button(|b| {
+        b.custom_id("to_start")
+            .style(ButtonStyle::Secondary)
+            .emoji("⏮️".parse::<ReactionType>().unwrap())
+            .disabled(reactive_interaction.button_disable_option.0)
+    })
+    .create_button(|b| {
+        b.custom_id("previous")
+            .style(ButtonStyle::Secondary)
+            .emoji("⬅️".parse::<ReactionType>().unwrap())
+            .disabled(reactive_interaction.button_disable_option.1)
+    })
+    .create_button(|b| {
+        b.custom_id("next")
+            .style(ButtonStyle::Secondary)
+            .emoji("➡️".parse::<ReactionType>().unwrap())
+            .disabled(reactive_interaction.button_disable_option.2)
+    })
+    .create_button(|b| {
+        b.custom_id("to_end")
+            .style(ButtonStyle::Secondary)
+            .emoji("⏭️".parse::<ReactionType>().unwrap())
+            .disabled(reactive_interaction.button_disable_option.3)
+    })
+    .create_button(|b| {
+        b.custom_id("remove")
+            .style(ButtonStyle::Danger)
+            .emoji("✖️".parse::<ReactionType>().unwrap())
+    });
+
+    row
+}
+
+pub async fn reaction_pages(
+    interaction: ApplicationCommandInteraction,
+    ctx: &Context,
+    embeds: Vec<CreateEmbed>,
+) -> Result<(), serenity::Error> {
+    let mut reactive_interaction = SkippableEmbed {
+        total: embeds.len(),
+        current_idx: 0,
+        button_disable_option: (true, true, true, true),
+    };
+
+    reactive_interaction.check_disable_button();
+
     //interaction을 edit해서 먼저 button component를 붙이기
-    //
     //나중에 multi-embed framework랑 안겹치게 custom id 설정함
     //
-    //filter로 거름
-    //
-    //+ button interaction 계속 받기. 5분동안만 시간 지나면 Ok() 반환
-    //
-    //만약 받는도중 에러나면 바로 Err 반환
+    //전송된 Embed에 component 붙이기
+    if let Err(why) = interaction
+        .edit_original_interaction_response(&ctx.http, |i| {
+            i.components(|c| c.set_action_row(set_reaction_page_action_row(&reactive_interaction)))
+        })
+        .await
+    {
+        error!("an error occured while adding buttons.");
+        error!("{:#?}", why);
+    };
+
+    //button interaction 계속 받기. 5분동안만 시간 지나면 Ok() 반환
+    match interaction.get_interaction_response(&ctx.http).await {
+        Ok(msg) => {
+            //filter 부분
+            let mut interaction_stream = msg
+                .await_component_interactions(&ctx)
+                .timeout(Duration::from_secs(60 * 3))
+                .filter(move |f| {
+                    f.message.id == msg.id
+                        //is_some_and 업뎃 후 코드를 다음과 같이 변경
+                        // f.member.is_some_and(|&m| m.user.id == interaction.user.id)
+                        && f.member.as_ref().unwrap().user.id == interaction.user.id
+                })
+                .build();
+
+            while let Some(button_reaction) = interaction_stream.next().await {
+                match button_reaction.data.custom_id.as_str() {
+                    "to_start" => reactive_interaction.skip_start(),
+                    "next" => reactive_interaction.next(),
+                    "previous" => reactive_interaction.prev(),
+                    "to_end" => reactive_interaction.skip_end(),
+                    "remove" => {
+                        if let Err(why) = msg.delete(&ctx.http).await {
+                            error!("Couldn't delete message in reaction button invoking 'remove'.");
+                            error!("{:#?}", why);
+                        }
+                        break;
+                    }
+                    _ => continue,
+                }
+
+                reactive_interaction.check_disable_button();
+
+                if let Err(why) = button_reaction
+                    .create_interaction_response(&ctx.http, |r| {
+                        r.kind(InteractionResponseType::UpdateMessage)
+                            .interaction_response_data(|i| {
+                                i.set_embed(embeds[reactive_interaction.current_idx].clone())
+                                    .components(|c| {
+                                        c.set_action_row(set_reaction_page_action_row(
+                                            &reactive_interaction,
+                                        ))
+                                    })
+                            })
+                    })
+                    .await
+                {
+                    error!("Couldn't set embed.");
+                    error!("{:#?}", why);
+                }
+            }
+
+            //dangling interaction 방지로 끝나면 바로 삭제
+            msg.delete(&ctx.http).await.unwrap();
+        }
+        Err(why) => {
+            error!("Couldn't get message info from interaction.");
+            error!("{:#?}", why);
+        }
+    };
+
+    //만약 받는도중 에러나면 바로 serenityErr 반환
     //
     //command_handler에서 Err 반환된거 처리하기(사용자에게 에러 문구 띄우기)
+    Ok(())
 }

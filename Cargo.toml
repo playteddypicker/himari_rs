@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 dotenv = "0.15.0"
 rand = "0.8.5"
+log = "0.4.17"
+env_logger = "0.9.1"
 
 [dependencies.tokio]
 version = "1.0"
@@ -15,5 +17,5 @@ features = ["macros", "rt-multi-thread"]
 
 [dependencies.serenity]
 default-features = false
-features = ["builder", "chrono", "client", "gateway", "cache", "http", "model", "utils", "rustls_backend"]
+features = ["builder", "chrono", "client", "gateway", "cache", "http", "model", "utils", "rustls_backend", "collector"]
 version = "0.11"

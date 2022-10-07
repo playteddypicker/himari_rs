@@ -2,13 +2,18 @@ use dotenv::dotenv;
 use serenity::prelude::*;
 use std::env;
 
-mod event_handler;
+use env_logger;
+use log::error;
+
 mod command_handler;
+mod event_handler;
 mod utils;
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    env_logger::init();
+
     let client_token = env::var("DISCORD_TOKEN").expect("token does not exists");
 
     let intents = GatewayIntents::GUILDS
@@ -23,6 +28,6 @@ async fn main() {
         .expect("Error creating client.");
 
     if let Err(why) = client.start().await {
-        println!("Client error: {:?}", why);
+        error!("Client error: {:?}", why);
     }
 }
