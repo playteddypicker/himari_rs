@@ -67,6 +67,10 @@ impl SkippableEmbed {
 
 fn set_reaction_page_action_row(reactive_interaction: &SkippableEmbed) -> CreateActionRow {
     let mut row = CreateActionRow::default();
+    //이 함수 호출하기 직전에 check_disable_button을 호출하므로 굳이 밖에서 그럴필요없이
+    //그냥 내부에서 호출하는게 나음ㅋ
+    reactive_interaction.check_disable_button();
+
     row.create_button(|b| {
         b.custom_id("to_start")
             .style(ButtonStyle::Secondary)
@@ -111,8 +115,6 @@ pub async fn reaction_pages(
         button_disable_option: (true, true, true, true),
     };
 
-    reactive_interaction.check_disable_button();
-
     //interaction을 edit해서 먼저 button component를 붙이기
     //나중에 multi-embed framework랑 안겹치게 custom id 설정함
     //
@@ -153,12 +155,10 @@ pub async fn reaction_pages(
                             error!("Couldn't delete message in reaction button invoking 'remove'.");
                             error!("{:#?}", why);
                         }
-                        break;
+                        return Ok(());
                     }
                     _ => continue,
                 }
-
-                reactive_interaction.check_disable_button();
 
                 if let Err(why) = button_reaction
                     .create_interaction_response(&ctx.http, |r| {
@@ -180,7 +180,10 @@ pub async fn reaction_pages(
             }
 
             //dangling interaction 방지로 끝나면 바로 삭제
-            msg.delete(&ctx.http).await.unwrap();
+            if let Err(why) = msg.delete(&ctx.http).await {
+                error!("an error occured while deleting message.");
+                error!("{:#?}", why);
+            };
         }
         Err(why) => {
             error!("Couldn't get message info from interaction.");
