@@ -14,6 +14,7 @@ use serenity::{
 use log::{error, info, warn};
 
 use crate::command_handler::commands;
+use crate::utils::frameworks::button_embeds;
 use crate::utils::frameworks::reaction_pages;
 
 use std::cell::RefCell;
@@ -22,7 +23,7 @@ pub enum CommandReturnValue {
     SingleString(String),
     SingleEmbed(CreateEmbed),
     ReactionPages(RefCell<Vec<CreateEmbed>>),
-    MultiEmbedFramework(), //매개변수 뭘로할지 생각중
+    MultiEmbedFramework(button_embeds::EmbedTree), //매개변수 뭘로할지 생각중
 }
 
 #[async_trait]
@@ -98,7 +99,7 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                     unwrap_embeds, command.data.name
                 );
                 error!("here's why: {:?}", why);
-            };
+            }
             //여기서 발생한 ApplicationCommandInteraction은 더이상 편집 외엔 사용 안함
             //그러므로 reaction_pages에 소유권 자체를 넘기면 해결
             if let Err(why) = reaction_pages::reaction_pages(command, &ctx, unwrap_embeds).await {
@@ -106,6 +107,33 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                 error!("{:#?}", why);
             }
         }
-        CommandReturnValue::MultiEmbedFramework() => {}
+        //버튼으로 사이트마냥 돌아다닐수 있는 동적 임베드로 되어있을 때
+        CommandReturnValue::MultiEmbedFramework(embedtree) => {
+            if let Err(why) = command
+                .create_interaction_response(&ctx.http, |res| {
+                    res.kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|msg| {
+                            msg.set_embed(match &embedtree.root_embed.embed {
+                                button_embeds::NodeType::SingleEmbed(embed) => embed.clone(),
+                                button_embeds::NodeType::PageEmbed(skippable_embed) => {
+                                    skippable_embed.embedlist[0].clone()
+                                }
+                            })
+                        })
+                })
+                .await
+            {
+                error!(
+                    "Failed to send Button-reactive Embeds \"{:#?}\" from command \"{}\".",
+                    embedtree.tree, command.data.name
+                );
+                error!("{:#?}", why);
+            }
+            //얘도 마찬가지로 embedtree 자체를 넘겨줌 이제 사용 안함 쟤한테 전적으로 맡김
+            if let Err(why) = button_embeds::button_framework(embedtree).await {
+                error!("an error occured while handling button_reactionable page.");
+                error!("{:#?}", why);
+            }
+        }
     }
 }
