@@ -17,8 +17,10 @@ use std::time::Duration;
 
 use log::error;
 
-struct SkippableEmbed {
+#[derive(Debug)]
+pub struct SkippableEmbed {
     total: usize,
+    pub(crate) embedlist: Vec<CreateEmbed>,
     current_idx: usize,
     button_disable_option: (bool, bool, bool, bool),
 }
@@ -65,7 +67,7 @@ impl SkippableEmbed {
     }
 }
 
-fn set_reaction_page_action_row(reactive_interaction: &SkippableEmbed) -> CreateActionRow {
+fn set_reaction_page_action_row(reactive_interaction: &mut SkippableEmbed) -> CreateActionRow {
     let mut row = CreateActionRow::default();
     //이 함수 호출하기 직전에 check_disable_button을 호출하므로 굳이 밖에서 그럴필요없이
     //그냥 내부에서 호출하는게 나음ㅋ
@@ -111,6 +113,7 @@ pub async fn reaction_pages(
 ) -> Result<(), serenity::Error> {
     let mut reactive_interaction = SkippableEmbed {
         total: embeds.len(),
+        embedlist: embeds,
         current_idx: 0,
         button_disable_option: (true, true, true, true),
     };
@@ -121,12 +124,14 @@ pub async fn reaction_pages(
     //전송된 Embed에 component 붙이기
     if let Err(why) = interaction
         .edit_original_interaction_response(&ctx.http, |i| {
-            i.components(|c| c.set_action_row(set_reaction_page_action_row(&reactive_interaction)))
+            i.components(|c| {
+                c.set_action_row(set_reaction_page_action_row(&mut reactive_interaction))
+            })
         })
         .await
     {
         error!("an error occured while adding buttons.");
-        error!("{:#?}", why);
+        return Err(why);
     };
 
     //button interaction 계속 받기. 5분동안만 시간 지나면 Ok() 반환
@@ -153,7 +158,7 @@ pub async fn reaction_pages(
                     "remove" => {
                         if let Err(why) = msg.delete(&ctx.http).await {
                             error!("Couldn't delete message in reaction button invoking 'remove'.");
-                            error!("{:#?}", why);
+                            return Err(why);
                         }
                         return Ok(());
                     }
@@ -164,30 +169,34 @@ pub async fn reaction_pages(
                     .create_interaction_response(&ctx.http, |r| {
                         r.kind(InteractionResponseType::UpdateMessage)
                             .interaction_response_data(|i| {
-                                i.set_embed(embeds[reactive_interaction.current_idx].clone())
-                                    .components(|c| {
-                                        c.set_action_row(set_reaction_page_action_row(
-                                            &reactive_interaction,
-                                        ))
-                                    })
+                                i.set_embed(
+                                    reactive_interaction.embedlist
+                                        [reactive_interaction.current_idx]
+                                        .clone(),
+                                )
+                                .components(|c| {
+                                    c.set_action_row(set_reaction_page_action_row(
+                                        &mut reactive_interaction,
+                                    ))
+                                })
                             })
                     })
                     .await
                 {
                     error!("Couldn't set embed.");
-                    error!("{:#?}", why);
+                    return Err(why);
                 }
             }
 
             //dangling interaction 방지로 끝나면 바로 삭제
             if let Err(why) = msg.delete(&ctx.http).await {
                 error!("an error occured while deleting message.");
-                error!("{:#?}", why);
+                return Err(why);
             };
         }
         Err(why) => {
             error!("Couldn't get message info from interaction.");
-            error!("{:#?}", why);
+            return Err(why);
         }
     };
 
