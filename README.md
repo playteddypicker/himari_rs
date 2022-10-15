@@ -26,7 +26,21 @@ Rust로 새로 짜고있는거
 - reactionpages 구현 완료
 - 콘솔 에러를 log 크레이트를 이용해서 좀 더 가시적 가독성 좋게 보이게끔 함
 
+#### 2020. 10. 14
+
+- /start로 봇 업데이트 관리같은걸 할건데, command_handler에서 객체 상속을 다시짜야함
+- 근데 러스트는 상속을 지원 안함. 러스트만의 OOP 핸들링 방식이 있어서 그거 따르는중인데 너무 어려움
+- 그래서 커맨드 핸들러를 다시 짜는중임. 버튼임베드는 나중에..
+
 # TODO LIST
+
+### 큰거 세개
+
+#### 1. CommandHandler <<진행중
+
+#### 2. ButtonEmbed
+
+#### 3. lavalink 통합
 
 ```
 [ ] : 아직 안만듬
@@ -35,12 +49,16 @@ Rust로 새로 짜고있는거
 
 src/
   utils/
-    [ ] music_info_search.rs
-    [ ] server_info.rs
-    [C] reaction_page.rs
-    [ ] timestamp.rs
-    [ ] lavalinik_get_info.rs
-    [ ] get_music_info.himari_rs
+  	structures/
+      [ ] server_info.rs
+	  [ ] server_db_schema.rs
+	frameworks/
+      [C] reaction_page.rs
+	  [~] button_embed.rs
+	music_modules/
+      [ ] lavalinik_get_info.rs
+      [ ] get_music_info.rs
+      [ ] music_info_search.rs
   command_handler/
     [~] command_handler.rs
       music_cmd/
