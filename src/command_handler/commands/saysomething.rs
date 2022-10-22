@@ -1,5 +1,7 @@
-use crate::command_handler::command_handler::{CommandReturnValue, DefaultCommandMethods};
-use rand::Rng;
+use crate::command_handler::{
+    assign_command::CommandInterface, command_handler::CommandReturnValue,
+};
+
 use serenity::{
     async_trait,
     builder::CreateApplicationCommand,
@@ -9,7 +11,9 @@ use serenity::{
     },
 };
 
-pub struct SaySomething;
+use rand::Rng;
+
+struct SaySomething;
 
 const SAY_SOMETHING_LIST: [&'static str; 4] = [
     "후훗. 기다리고 있었습니다, 선생님.",
@@ -18,19 +22,29 @@ const SAY_SOMETHING_LIST: [&'static str; 4] = [
     "버러지 컽~!",
 ];
 
+pub fn get_command() -> Box<dyn CommandInterface + Sync + Send> {
+    Box::new(SaySomething)
+}
+
 #[async_trait]
-impl DefaultCommandMethods for SaySomething {
-    async fn run(_ctx: &Context, _options: &[CommandDataOption]) -> CommandReturnValue {
+impl CommandInterface for SaySomething {
+    async fn run(&self, _ctx: &Context, _options: &[CommandDataOption]) -> CommandReturnValue {
         CommandReturnValue::SingleString(
             SAY_SOMETHING_LIST[rand::thread_rng().gen_range(0..4)].to_string(),
         )
     }
 
-    fn name() -> String {
+    fn name(&self) -> String {
         String::from("아무말")
     }
 
-    fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-        command.name("아무말").description("후후후..")
+    fn register<'a>(
+        &self,
+        command: &'a mut CreateApplicationCommand,
+    ) -> &'a mut CreateApplicationCommand {
+        command
+            .name("아무말")
+            .description("후후후..")
+            .default_member_permissions(Permissions::SEND_MESSAGES | Permissions::ADD_REACTIONS)
     }
 }

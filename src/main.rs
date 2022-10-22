@@ -1,9 +1,8 @@
 use dotenv::dotenv;
-use serenity::prelude::*;
-use std::env;
-
 use env_logger;
 use log::error;
+use serenity::prelude::*;
+use std::env;
 
 mod command_handler;
 mod event_handler;

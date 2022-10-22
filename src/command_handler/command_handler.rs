@@ -1,3 +1,6 @@
+//얘는 CommandInteraction event가 발생했을때 실행됨
+//Command를 만들어서 등록하거나 직접적으로 실행하는 함수를 전달하는건 assign_command.rs에서 함
+
 use serenity::{
     async_trait,
     builder::{CreateApplicationCommand, CreateEmbed},
@@ -6,14 +9,14 @@ use serenity::{
         application::interaction::{
             application_command::ApplicationCommandInteraction, InteractionResponseType,
         },
-        permissions::Permissions,
+        id::GuildId,
         prelude::interaction::application_command::CommandDataOption,
     },
 };
 
 use log::{error, info, warn};
 
-use crate::command_handler::commands;
+use super::assign_command::COMMAND_LIST;
 use crate::utils::frameworks::button_embeds;
 use crate::utils::frameworks::reaction_pages;
 
@@ -23,30 +26,17 @@ pub enum CommandReturnValue {
     SingleString(String),
     SingleEmbed(CreateEmbed),
     ReactionPages(RefCell<Vec<CreateEmbed>>),
-    MultiEmbedFramework(button_embeds::EmbedTree), //매개변수 뭘로할지 생각중
-}
-
-#[async_trait]
-pub trait DefaultCommandMethods {
-    async fn run(ctx: &Context, options: &[CommandDataOption]) -> CommandReturnValue;
-    fn name() -> String;
-    fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand;
-}
-
-#[async_trait]
-pub trait InteractiveCommandMethods {
-    async fn run(ctx: &Context, options: &[CreateApplicationCommand]) -> CommandReturnValue;
+    MultiEmbedFramework(), //매개변수 뭘로할지 생각중
 }
 
 //커맨드 실행
 pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Context) {
-    let cmd_result = match command.data.name.as_str() {
-        "start" => commands::start::Start::run(&ctx, &command.data.options).await,
-        "아무말" => commands::saysomething::SaySomething::run(&ctx, &command.data.options).await,
-        "reactiontest" => {
-            commands::reactiontest::ReactionTest::run(&ctx, &command.data.options).await
-        }
-        _ => CommandReturnValue::SingleString("좆까".to_string()),
+    //이렇게 일일이 등록 안하고 자동으로 가게끔 HashMap형태로 구현하기
+    //trait object를 이용해서 구현 완료
+    //trait 선언 후 여러 명령어를 dyn으로 묶어서 get_command에서 dyn CommandInterface형태로 리턴함
+    let cmd_result = match COMMAND_LIST.commands.get(command.data.name.as_str()) {
+        Some(result) => result.run(&ctx, &command.data.options).await,
+        None => CommandReturnValue::SingleString("아직 구현되지 않은 명령어입니다.".to_string()),
     };
 
     match cmd_result {
@@ -63,7 +53,7 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                     "Failed to send Single-string \"{:?}\" from command \"{}\".",
                     content, command.data.name
                 );
-                error!("here's why: {:?}", why);
+                error!("{:#?}", why);
             }
         }
         //단순 임베드 하나 응답일 때
@@ -79,7 +69,7 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                     "Failed to send single-embed \"{:#?}\" from command \"{}\".",
                     embed, command.data.name
                 );
-                error!("here's why: {:?}", why);
+                error!("{:#?}", why);
             }
         }
         //skippable한 페이지식 임베드로 되어있을때
@@ -98,7 +88,7 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                     "Failed to send reactive-embed \"{:#?}\" from command \"{}\".",
                     unwrap_embeds, command.data.name
                 );
-                error!("here's why: {:?}", why);
+                error!("{:#?}", why);
             }
             //여기서 발생한 ApplicationCommandInteraction은 더이상 편집 외엔 사용 안함
             //그러므로 reaction_pages에 소유권 자체를 넘기면 해결
@@ -108,32 +98,6 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
             }
         }
         //버튼으로 사이트마냥 돌아다닐수 있는 동적 임베드로 되어있을 때
-        CommandReturnValue::MultiEmbedFramework(embedtree) => {
-            if let Err(why) = command
-                .create_interaction_response(&ctx.http, |res| {
-                    res.kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|msg| {
-                            msg.set_embed(match &embedtree.root_embed.embed {
-                                button_embeds::NodeType::SingleEmbed(embed) => embed.clone(),
-                                button_embeds::NodeType::PageEmbed(skippable_embed) => {
-                                    skippable_embed.embedlist[0].clone()
-                                }
-                            })
-                        })
-                })
-                .await
-            {
-                error!(
-                    "Failed to send Button-reactive Embeds \"{:#?}\" from command \"{}\".",
-                    embedtree.tree, command.data.name
-                );
-                error!("{:#?}", why);
-            }
-            //얘도 마찬가지로 embedtree 자체를 넘겨줌 이제 사용 안함 쟤한테 전적으로 맡김
-            if let Err(why) = button_embeds::button_framework(embedtree).await {
-                error!("an error occured while handling button_reactionable page.");
-                error!("{:#?}", why);
-            }
-        }
+        CommandReturnValue::MultiEmbedFramework() => {}
     }
 }

@@ -1,4 +1,6 @@
-use crate::command_handler::command_handler::{CommandReturnValue, DefaultCommandMethods};
+use crate::command_handler::{
+    assign_command::CommandInterface, command_handler::CommandReturnValue,
+};
 
 use serenity::{
     async_trait,
@@ -10,11 +12,15 @@ use serenity::{
 };
 use std::cell::RefCell;
 
-pub struct ReactionTest;
+struct ReactionTest;
+
+pub fn get_command() -> Box<dyn CommandInterface + Sync + Send> {
+    Box::new(ReactionTest)
+}
 
 #[async_trait]
-impl DefaultCommandMethods for ReactionTest {
-    async fn run(_ctx: &Context, _options: &[CommandDataOption]) -> CommandReturnValue {
+impl CommandInterface for ReactionTest {
+    async fn run(&self, _ctx: &Context, _options: &[CommandDataOption]) -> CommandReturnValue {
         let mut embeds = Vec::new();
         let mut page1 = CreateEmbed::default();
         page1.title("title1").description("asdfasdf");
@@ -28,11 +34,14 @@ impl DefaultCommandMethods for ReactionTest {
         CommandReturnValue::ReactionPages(RefCell::new(embeds))
     }
 
-    fn name() -> String {
+    fn name(&self) -> String {
         "reactiontest".to_string()
     }
 
-    fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    fn register<'a>(
+        &'a self,
+        command: &'a mut CreateApplicationCommand,
+    ) -> &mut CreateApplicationCommand {
         command
             .name("reactiontest")
             .description("리액션페이지 테스트용")
