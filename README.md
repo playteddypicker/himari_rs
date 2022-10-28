@@ -42,15 +42,23 @@ Rust로 새로 짜고있는거
 - 시스템언어라 그런지 JS에서는 async/await 하나면 될거를 ㅅ.ㅂ 별의별 이상한 어? 하..
 - 너무 많은일이 있었어 너무힘들다증말
 
+#### 2022. 10. 28
+
+- 아무말 명령어 캐릭터별로 다르게끔 하게 수정
+- /start 커맨드로 봇 업데이트 체크 or 명령어 등록하게끔 구현함(수명에러 해결ㅋ)
+- 이제 기본적인 명령어 구현은 다 끝남. 버튼 상호작용 후 reply하는거만 추가하면 됨
+
 # TODO LIST
 
 ### 큰거 세개
 
 #### 1. CommandHandler <<완료
 
-#### 2. ButtonEmbed <<진행중
+#### 2. Button_embed <<진행중
 
-#### 3. lavalink 통합
+#### 3. VoiceEventHandler
+
+#### 4. lavalink 통합
 
 ```
 [ ] : 아직 안만듬
@@ -60,10 +68,10 @@ Rust로 새로 짜고있는거
 src/
   utils/
   	structures/
-      [ ] server_info.rs
+	  [ ] server_info.rs
 	  [ ] server_db_schema.rs
 	frameworks/
-      [C] reaction_page.rs
+	  [C] reaction_page.rs
 	  [~] button_embed.rs
 	music_modules/
       [ ] lavalinik_get_info.rs
@@ -71,21 +79,23 @@ src/
       [ ] music_info_search.rs
   command_handler/
     [~] command_handler.rs
+    [C] assign_command.rs
+    [C] assign_checker.rs
       music_cmd/
-        [ ] play.rs
-		[ ] pause.rs
+    	[ ] play.rs
+    	[ ] pause.rs
         [ ] skip.rs
         [ ] stop.rs
         [ ] eject.rs
-		[ ] queue.rs
+    	[ ] queue.rs
         [ ] nowplaying.rs
         [ ] history.rs
         [ ] loop.rs
-		[ ] move.rs
+    	[ ] move.rs
         [ ] jump.rs
-		[ ] remove.rs
-		[ ] shuffle.rs
-		[ ] volume.rs
+    	[ ] remove.rs
+    	[ ] shuffle.rs
+    	[ ] volume.rs
 	  server_player_cmd/
 		[ ] fast_setup.rs
 		[ ] setting.rs
@@ -95,7 +105,7 @@ src/
 		[ ] guild_playlist.rs
 		[ ] bot_playlist.rs
 	  util_cmd/
-	  	[~] start.rs
+	  	[C] start.rs
 	  other_cmd/
 	  	[C] saysomething.rs
   event_handler/
@@ -154,7 +164,7 @@ src/
   - [ ] /setting
   - [ ] /player
 - 유틸 명령어 목록
-  - [ ] /start
+  - [x] /start
   - [ ] /refresh
   - [ ] /reset
   - [ ] /debug

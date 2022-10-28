@@ -38,10 +38,10 @@ impl CommandInterface for ReactionTest {
         "reactiontest".to_string()
     }
 
-    fn register<'a>(
+    fn register<'a: 'b, 'b>(
         &'a self,
         command: &'a mut CreateApplicationCommand,
-    ) -> &mut CreateApplicationCommand {
+    ) -> &'b mut CreateApplicationCommand {
         command
             .name("reactiontest")
             .description("리액션페이지 테스트용")

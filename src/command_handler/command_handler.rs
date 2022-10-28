@@ -14,7 +14,7 @@ use serenity::{
     },
 };
 
-use log::{error, info, warn};
+use log::error;
 
 use super::assign_command::COMMAND_LIST;
 use crate::utils::frameworks::button_embeds;

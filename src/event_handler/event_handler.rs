@@ -21,7 +21,6 @@ pub struct DiscordEventHandler;
 #[async_trait]
 impl EventHandler for DiscordEventHandler {
     async fn ready(&self, _: Context, ready: Ready) {
-        //나중에 Ready에서 Command Handling ㄱ
         info!("{} is now connected.", ready.user.tag());
     }
 
