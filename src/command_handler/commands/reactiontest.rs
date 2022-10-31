@@ -7,7 +7,8 @@ use serenity::{
     builder::{CreateApplicationCommand, CreateEmbed},
     client::Context,
     model::{
-        permissions::Permissions, prelude::interaction::application_command::CommandDataOption,
+        application::interaction::application_command::ApplicationCommandInteraction,
+        prelude::interaction::application_command::CommandDataOption,
     },
 };
 use std::cell::RefCell;
@@ -20,7 +21,12 @@ pub fn get_command() -> Box<dyn CommandInterface + Sync + Send> {
 
 #[async_trait]
 impl CommandInterface for ReactionTest {
-    async fn run(&self, _ctx: &Context, _options: &[CommandDataOption]) -> CommandReturnValue {
+    async fn run(
+        &self,
+        _ctx: &Context,
+        _options: &[CommandDataOption],
+        _command: &ApplicationCommandInteraction,
+    ) -> CommandReturnValue {
         let mut embeds = Vec::new();
         let mut page1 = CreateEmbed::default();
         page1.title("title1").description("asdfasdf");

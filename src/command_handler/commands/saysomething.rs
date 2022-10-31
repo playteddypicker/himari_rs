@@ -7,6 +7,7 @@ use serenity::{
     builder::CreateApplicationCommand,
     client::Context,
     model::{
+        application::interaction::application_command::ApplicationCommandInteraction,
         permissions::Permissions, prelude::interaction::application_command::CommandDataOption,
     },
 };
@@ -37,7 +38,12 @@ pub fn get_command() -> Box<dyn CommandInterface + Sync + Send> {
 
 #[async_trait]
 impl CommandInterface for SaySomething {
-    async fn run(&self, ctx: &Context, _options: &[CommandDataOption]) -> CommandReturnValue {
+    async fn run(
+        &self,
+        ctx: &Context,
+        _options: &[CommandDataOption],
+        _command: &ApplicationCommandInteraction,
+    ) -> CommandReturnValue {
         return match ctx.cache.current_user().name.as_str() {
             "히마리" => CommandReturnValue::SingleString(
                 HIMARI_SCRIPT_LIST[rand::thread_rng().gen_range(0..HIMARI_SCRIPT_LIST.len())]

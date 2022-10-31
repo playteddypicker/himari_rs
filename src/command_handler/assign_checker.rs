@@ -4,7 +4,10 @@ use serenity::{
     futures::StreamExt,
     model::{
         application::{
-            component::ButtonStyle, interaction::application_command::ApplicationCommandInteraction,
+            component::ButtonStyle,
+            interaction::{
+                application_command::ApplicationCommandInteraction, InteractionResponseType,
+            },
         },
         channel::ReactionType,
         id::GuildId,
@@ -74,6 +77,7 @@ fn update_components(pressed: bool) -> CreateActionRow {
     row
 }
 
+//나중에 button framework로 단순화
 pub async fn send_first_setup_msg(
     ctx: &Context,
     gid: GuildId,
@@ -93,7 +97,7 @@ pub async fn send_first_setup_msg(
 
     //버튼 누를때까지 기다림
     match command.get_interaction_response(&ctx.http).await {
-        Ok(mut msg) => {
+        Ok(msg) => {
             let mut interaction_stream = msg
                 .await_component_interactions(&ctx)
                 .timeout(Duration::from_secs(60 * 5))
@@ -108,20 +112,24 @@ pub async fn send_first_setup_msg(
             if let Some(button_reaction) = interaction_stream.next().await {
                 match button_reaction.data.custom_id.as_str() {
                     "setup_assign" => {
-                        match command
-                            .edit_original_interaction_response(&ctx.http, |m| {
-                                m.embed(|e| e.title("서버로부터 명령어를 등록하는 중..."))
-                                    .components(|c| c.set_action_row(setup_components(true)))
+                        match button_reaction
+                            .create_interaction_response(&ctx.http, |r| {
+                                r.kind(InteractionResponseType::UpdateMessage)
+                                    .interaction_response_data(|res| {
+                                        res.embed(|e| e.title("서버로부터 명령어를 등록하는 중..."))
+                                            .components(|c| {
+                                                c.set_action_row(setup_components(true))
+                                            })
+                                    })
                             })
                             .await
                         {
                             Ok(_) => {
                                 //register_commands 메소드로 전부 등록
                                 COMMAND_LIST.register_commands(gid, &ctx).await;
-
-                                if let Err(why) = msg
-                                    .edit(&ctx.http, |m| {
-                                        m.embed(|e| e.title("명령어 등록이 완료되었습니다."))
+                                if let Err(why) = button_reaction
+                                    .edit_original_interaction_response(&ctx, |msg| {
+                                        msg.embed(|e| e.title("명령어 등록이 완료되었습니다."))
                                     })
                                     .await
                                 {
@@ -133,7 +141,7 @@ pub async fn send_first_setup_msg(
                             }
                         }
                     }
-                    "update_help" => {
+                    "setup_help" => {
                         //패치노트 임베드 보내기
                     }
                     "update_cancel" | _ => {
@@ -187,10 +195,15 @@ pub async fn send_available_updates_msg(
             if let Some(button_reaction) = interaction_stream.next().await {
                 match button_reaction.data.custom_id.as_str() {
                     "update_assign" => {
-                        match command
-                            .edit_original_interaction_response(&ctx.http, |m| {
-                                m.embed(|e| e.title("서버로부터 명령어를 등록하는 중..."))
-                                    .components(|c| c.set_action_row(setup_components(true)))
+                        match button_reaction
+                            .create_interaction_response(&ctx.http, |r| {
+                                r.kind(InteractionResponseType::UpdateMessage)
+                                    .interaction_response_data(|res| {
+                                        res.embed(|e| e.title("서버로부터 명령어를 등록하는 중..."))
+                                            .components(|c| {
+                                                c.set_action_row(setup_components(true))
+                                            })
+                                    })
                             })
                             .await
                         {
@@ -213,9 +226,12 @@ pub async fn send_available_updates_msg(
                         }
                     }
                     "update_help" => {
-                        command
-                            .edit_original_interaction_response(&ctx.http, |m| {
-                                m.content("그런건 없다 게이야 ㅋㅋ")
+                        button_reaction
+                            .create_interaction_response(&ctx.http, |r| {
+                                r.kind(InteractionResponseType::UpdateMessage)
+                                    .interaction_response_data(|res| {
+                                        res.content("그런건 없다 게이야 ㅋㅋ")
+                                    })
                             })
                             .await
                             .unwrap();

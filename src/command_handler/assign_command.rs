@@ -20,7 +20,12 @@ use serenity::{
 
 #[async_trait]
 pub trait CommandInterface {
-    async fn run(&self, ctx: &Context, options: &[CommandDataOption]) -> CommandReturnValue;
+    async fn run(
+        &self,
+        ctx: &Context,
+        options: &[CommandDataOption],
+        command: &ApplicationCommandInteraction,
+    ) -> CommandReturnValue;
     fn name(&self) -> String;
     //수명을 맞춰줘야함. 참조해온 command가 먼저 소멸되어버리면 안되니까..
     fn register<'a: 'b, 'b>(
@@ -52,7 +57,8 @@ lazy_static! {
     pub static ref COMMAND_LIST: CommandList = CommandList {
         commands: HashMap::from([
             ("아무말", commands::saysomething::get_command()),
-            ("reactiontest", commands::reactiontest::get_command())
+            ("reactiontest", commands::reactiontest::get_command()),
+            ("join", commands::join::get_command()),
         ])
     };
 }

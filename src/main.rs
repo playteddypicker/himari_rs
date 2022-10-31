@@ -2,6 +2,7 @@ use dotenv::dotenv;
 use env_logger;
 use log::error;
 use serenity::prelude::*;
+use songbird::SerenityInit;
 use std::env;
 
 mod command_handler;
@@ -23,6 +24,7 @@ async fn main() {
 
     let mut client = Client::builder(&client_token, intents)
         .event_handler(event_handler::event_handler::DiscordEventHandler)
+        .register_songbird()
         .await
         .expect("Error creating client.");
 

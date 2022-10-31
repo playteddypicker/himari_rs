@@ -2,15 +2,10 @@
 //Command를 만들어서 등록하거나 직접적으로 실행하는 함수를 전달하는건 assign_command.rs에서 함
 
 use serenity::{
-    async_trait,
     builder::{CreateApplicationCommand, CreateEmbed},
     client::Context,
-    model::{
-        application::interaction::{
-            application_command::ApplicationCommandInteraction, InteractionResponseType,
-        },
-        id::GuildId,
-        prelude::interaction::application_command::CommandDataOption,
+    model::application::interaction::{
+        application_command::ApplicationCommandInteraction, InteractionResponseType,
     },
 };
 
@@ -31,11 +26,13 @@ pub enum CommandReturnValue {
 
 //커맨드 실행
 pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Context) {
+    //일단 defer로 await
+    command.defer(&ctx.http).await.unwrap();
     //이렇게 일일이 등록 안하고 자동으로 가게끔 HashMap형태로 구현하기
     //trait object를 이용해서 구현 완료
     //trait 선언 후 여러 명령어를 dyn으로 묶어서 get_command에서 dyn CommandInterface형태로 리턴함
     let cmd_result = match COMMAND_LIST.commands.get(command.data.name.as_str()) {
-        Some(result) => result.run(&ctx, &command.data.options).await,
+        Some(result) => result.run(&ctx, &command.data.options, &command).await,
         None => CommandReturnValue::SingleString("아직 구현되지 않은 명령어입니다.".to_string()),
     };
 
@@ -43,10 +40,7 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
         //단순 문자열 응답일때
         CommandReturnValue::SingleString(content) => {
             if let Err(why) = command
-                .create_interaction_response(&ctx.http, |res| {
-                    res.kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|msg| msg.content(&content))
-                })
+                .edit_original_interaction_response(&ctx.http, |msg| msg.content(&content))
                 .await
             {
                 error!(
@@ -59,10 +53,7 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
         //단순 임베드 하나 응답일 때
         CommandReturnValue::SingleEmbed(embed) => {
             if let Err(why) = command
-                .create_interaction_response(&ctx.http, |res| {
-                    res.kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|msg| msg.set_embed(embed.clone()))
-                })
+                .edit_original_interaction_response(&ctx.http, |msg| msg.set_embed(embed.clone()))
                 .await
             {
                 error!(
@@ -76,11 +67,8 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
         CommandReturnValue::ReactionPages(embeds) => {
             let unwrap_embeds = embeds.into_inner();
             if let Err(why) = command
-                .create_interaction_response(&ctx.http, |res| {
-                    res.kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|msg| {
-                            msg.set_embed(unwrap_embeds.clone()[0].clone())
-                        })
+                .edit_original_interaction_response(&ctx.http, |msg| {
+                    msg.set_embed(unwrap_embeds.clone()[0].clone())
                 })
                 .await
             {
