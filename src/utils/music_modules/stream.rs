@@ -6,7 +6,7 @@ use lavalink_rs::LavalinkClient;
 use serenity::{
     client::Context,
     model::{
-        guild::Guild,
+        guild::{Guild, Member},
         id::{ChannelId, GuildId, UserId},
     },
 };
@@ -17,7 +17,7 @@ use log::error;
 
 enum ConnectionErrorCode {
     JoinVoiceChannelFirst,
-    AlreadyConnectedOtherChannel,
+    AlreadyConnectedOtherChannel(String),
     CannotFoundVoiceChannelInfo,
     CannotFoundServerInfo,
 }
@@ -27,6 +27,12 @@ enum ConnectionSuccessType {
     AlreadyConnected,
     NewConnect,
 }*/
+
+pub struct RequestInfo {
+    channel_id: ChannelId,
+    member_name: String,
+    member_avatar_url: String,
+}
 
 pub enum RequestType {
     Command,
@@ -48,11 +54,11 @@ pub async fn connection_main(
     let voice_manager = songbird::get(ctx).await.unwrap();
     return match connection_filter(&uid, &ctx.cache.guild(&gid), &voice_manager).await {
         //노래를 틀어도 된다고 판단하면
-        Ok(ch) => {
-            match voice_manager.join(gid.clone(), ch).await.1 {
+        Ok(res) => {
+            match voice_manager.join(gid.clone(), res.channel_id).await.1 {
                 Ok(_) => {
-                    return match enqueue_main(gid, search_query, request_type).await {
-                        Some(result_embed) => CommandReturnValue::SingleEmbed(result_embed),
+                    return match enqueue_main(res, gid, search_query, request_type).await {
+                        Some(result) => CommandReturnValue::SingleStringWithEmbed(result),
                         None => CommandReturnValue::SingleString(
                             "조건에 맞는 검색 결과가 없습니다.".to_string(),
                         ),
@@ -71,9 +77,12 @@ pub async fn connection_main(
             ConnectionErrorCode::JoinVoiceChannelFirst => {
                 CommandReturnValue::SingleString("⚠️ 먼저 음성 채널에 들어가주세요.".to_string())
             }
-            ConnectionErrorCode::AlreadyConnectedOtherChannel => CommandReturnValue::SingleString(
-                "⚠️ 이미 다른 채널에 연결되어 있습니다. ".to_string(),
-            ),
+            ConnectionErrorCode::AlreadyConnectedOtherChannel(ch_id) => {
+                CommandReturnValue::SingleString(format!(
+                    "이미 저는 {}에서 스트리밍 중입니다.",
+                    ch_id
+                ))
+            }
             ConnectionErrorCode::CannotFoundServerInfo => {
                 CommandReturnValue::SingleString("❔ 서버 정보를 찾을 수 없습니다.".to_string())
             }
@@ -88,40 +97,62 @@ async fn connection_filter(
     uid: &UserId,
     guild: &Option<Guild>,
     voice_manager: &Songbird,
-) -> Result<ChannelId, ConnectionErrorCode> {
+) -> Result<RequestInfo, ConnectionErrorCode> {
     //Cache로부터 불러온 서버 정보가 제대로 불러와졌는지에 따라 체크
     return match guild {
         //서버 정보 불러와짐
-        Some(g) => match g.voice_states.get(uid).and_then(|vs| vs.channel_id) {
-            //유저가 음성채널에 있을때
-            Some(user_ch_id) => {
-                //봇의 음성채널 정보에 따라 구분
-                match voice_manager.get(g.id) {
-                    //음성채널에 이미 들어가있으면
-                    Some(call) => {
-                        let locked_call = call.lock().await;
-                        match locked_call.current_channel() {
-                            //음성 채널 정보를 성공적으로 불러왔다면
-                            Some(bot_ch_id) => {
-                                //봇하고 같은 채널에 있으면
-                                if bot_ch_id.0 == user_ch_id.0 {
-                                    Ok(user_ch_id)
-                                //봇이 다른 채널에 있으면 ntr못함
-                                } else {
-                                    Err(ConnectionErrorCode::AlreadyConnectedOtherChannel)
+        Some(g) => {
+            match g.voice_states.get(uid).and_then(|vs| vs.channel_id) {
+                //유저가 음성채널에 있을때
+                Some(user_ch_id) => {
+                    let mem = g.members.get(uid);
+                    //봇의 음성채널 정보에 따라 구분
+                    match voice_manager.get(g.id) {
+                        //음성채널에 이미 들어가있으면
+                        Some(call) => {
+                            let locked_call = call.lock().await;
+                            match locked_call.current_channel() {
+                                //음성 채널 정보를 성공적으로 불러왔다면
+                                Some(bot_ch_id) => {
+                                    //봇하고 같은 채널에 있으면
+                                    if bot_ch_id.0 == user_ch_id.0 {
+                                        Ok(get_request_info(user_ch_id, mem))
+                                    //봇이 다른 채널에 있으면 ntr못함
+                                    } else {
+                                        Err(ConnectionErrorCode::AlreadyConnectedOtherChannel(
+                                            format!("<#{}>", bot_ch_id.0),
+                                        ))
+                                    }
                                 }
+                                //음성 채널 정보를 불러오는데 실패하면
+                                None => Err(ConnectionErrorCode::CannotFoundVoiceChannelInfo),
                             }
-                            //음성 채널 정보를 불러오는데 실패하면
-                            None => Err(ConnectionErrorCode::CannotFoundVoiceChannelInfo),
                         }
+                        //음성채널에 연결되어있지 않으면
+                        None => Ok(get_request_info(user_ch_id, mem)),
                     }
-                    //음성채널에 연결되어있지 않으면
-                    None => Ok(user_ch_id),
                 }
+                //유저가 음성채널에 없을때
+                None => Err(ConnectionErrorCode::JoinVoiceChannelFirst),
             }
-            //유저가 음성채널에 없을때
-            None => Err(ConnectionErrorCode::JoinVoiceChannelFirst),
-        }, //서버 정보가 안불러와짐
+        } //서버 정보가 안불러와짐
         None => Err(ConnectionErrorCode::CannotFoundServerInfo),
     };
+}
+
+fn get_request_info(chid: ChannelId, mem: Option<&Member>) -> RequestInfo {
+    RequestInfo {
+        channel_id: chid,
+        member_name: match mem {
+            Some(m) => m.display_name().to_string(),
+            None => "NotFound".to_string(),
+        },
+        member_avatar_url: match mem {
+            Some(m) => match m.avatar_url() {
+                Some(u) => u,
+                None => "https://i.redd.it/j3t4cvgywd051.png".to_string(),
+            },
+            None => "https://i.redd.it/j3t4cvgywd051.png".to_string(),
+        },
+    }
 }

@@ -20,6 +20,7 @@ use std::cell::RefCell;
 pub enum CommandReturnValue {
     SingleString(String),
     SingleEmbed(CreateEmbed),
+    SingleStringWithEmbed((String, CreateEmbed)),
     ReactionPages(RefCell<Vec<CreateEmbed>>),
     MultiEmbedFramework(), //매개변수 뭘로할지 생각중
 }
@@ -59,6 +60,22 @@ pub async fn seperate_command(command: ApplicationCommandInteraction, ctx: &Cont
                 error!(
                     "Failed to send single-embed \"{:#?}\" from command \"{}\".",
                     embed, command.data.name
+                );
+                error!("{:#?}", why);
+            }
+        }
+        //임베드 하나에 메시지 컨텐츠 하나 묶어서 보낼 때
+        CommandReturnValue::SingleStringWithEmbed((m, embed)) => {
+            if let Err(why) = command
+                .edit_original_interaction_response(&ctx.http, |msg| {
+                    msg.content(m.as_str()).set_embed(embed.clone())
+                })
+                .await
+            {
+                error!(
+                    "Failed to single-string with embeed \"{:#?}\" from command \"{}\".",
+                    (m, embed),
+                    command.data.name
                 );
                 error!("{:#?}", why);
             }
