@@ -58,7 +58,7 @@ lazy_static! {
         commands: HashMap::from([
             ("아무말", commands::saysomething::get_command()),
             ("reactiontest", commands::reactiontest::get_command()),
-            ("join", commands::join::get_command()),
+            ("play", commands::play::get_command()),
         ])
     };
 }

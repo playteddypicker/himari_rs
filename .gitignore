@@ -2,3 +2,4 @@
 /.env
 /Cargo.lock
 .DS_Store
+/lavalink_test/
