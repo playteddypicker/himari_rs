@@ -37,9 +37,12 @@ impl CommandInterface for Play {
         let search_string = if let CommandDataOptionValue::String(request) =
             options.get(0).unwrap().resolved.as_ref().unwrap()
         {
-            Some(request.to_string())
+            request.to_string()
         } else {
-            None
+            //이게 string이 아닐수가 있나????
+            return CommandReturnValue::SingleString(
+                "제대로 된 검색 형식을 넣어주세요.".to_string(),
+            );
         };
 
         //얘는 선택적 옵션임. 디폴트는 false로..

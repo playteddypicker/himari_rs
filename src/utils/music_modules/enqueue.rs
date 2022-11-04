@@ -1,15 +1,17 @@
 use serenity::builder::CreateEmbed;
 use serenity::model::id::GuildId;
 
+use super::request_search_query;
 use super::stream::RequestInfo;
 use super::stream::RequestType;
 
 pub async fn enqueue_main(
     req: RequestInfo,
     gid: GuildId,
-    search_query: (Option<String>, bool),
+    search_query: (String, bool),
     request_type: RequestType,
 ) -> Option<(String, CreateEmbed)> {
+    request_search_query::request_search(search_query).await;
     None
 }
 

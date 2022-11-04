@@ -9,9 +9,10 @@ async fn make_source(call: Call) {
 }
 
 fn error_code(err: Error) -> String {
-    match Error {
+    /*match Error {
         Error::Metadata => "영상 정보를 가져오는데 실패했습니다.".to_string(),
-        Error::YoutubeDlProcessing(output) => format!("영상 소스를 다운받는 데 실패했습니다."),
+        Error::YouTubeDlProcessing(output) => format!("영상 소스를 다운받는 데 실패했습니다."),
         _ => "ㄴㄱㅁ".to_string(),
-    }
+    }*/
+    String::from("asdf")
 }

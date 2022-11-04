@@ -13,6 +13,7 @@ env_logger = "0.9.1"
 lazy_static = "1.4.0"
 songbird = "0.3.0"
 lavalink-rs = {git = "https://gitlab.com/vicky5124/lavalink-rs",  branch = "master", features = ["rustls"]}
+regex = "1"
 
 [dependencies.tokio]
 version = "1.0"

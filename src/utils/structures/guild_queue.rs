@@ -38,7 +38,7 @@ pub struct GuildQueue {
     queue: Box<Vec<SongData>>,
     prev_queue: Box<Vec<SongData>>, //max 10
     play_status: PlayStatus,
-    volume: u8,
+    volume: u8, //0~255까지
     search_filter: SearchFilter,
 }
 

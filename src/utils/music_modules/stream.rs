@@ -28,6 +28,7 @@ enum ConnectionSuccessType {
     NewConnect,
 }*/
 
+//요청한놈 유저 정보 저장하는 구조체
 pub struct RequestInfo {
     channel_id: ChannelId,
     member_name: String,
@@ -47,7 +48,7 @@ pub async fn connection_main(
     uid: &UserId,
     gid: GuildId,
     ctx: &Context,
-    search_query: (Option<String>, bool),
+    search_query: (String, bool),
     request_type: RequestType,
 ) -> CommandReturnValue {
     //연결 확인
