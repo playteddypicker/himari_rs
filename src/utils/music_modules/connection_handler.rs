@@ -1,5 +1,6 @@
+use super::enqueue::enqueue_main;
+use super::request_search_query::get_song_main;
 use crate::command_handler::command_handler::CommandReturnValue;
-use crate::utils::music_modules::enqueue::enqueue_main;
 
 use lavalink_rs::LavalinkClient;
 
@@ -11,6 +12,8 @@ use serenity::{
     },
 };
 
+use songbird::input::Input;
+use songbird::Call;
 use songbird::Songbird;
 
 use log::error;
@@ -30,9 +33,9 @@ enum ConnectionSuccessType {
 
 //요청한놈 유저 정보 저장하는 구조체
 pub struct RequestInfo {
-    channel_id: ChannelId,
-    member_name: String,
-    member_avatar_url: String,
+    pub channel_id: ChannelId,
+    pub member_name: String,
+    pub member_avatar_url: String,
 }
 
 pub enum RequestType {
@@ -41,59 +44,79 @@ pub enum RequestType {
     PlaylistCommand,
 }
 
+fn errorcode_wraping(errcode: ConnectionErrorCode) -> String {
+    return match errcode {
+        ConnectionErrorCode::JoinVoiceChannelFirst => {
+            "⚠️ 먼저 음성 채널에 들어가주세요.".to_string()
+        }
+        ConnectionErrorCode::AlreadyConnectedOtherChannel(ch_id) => {
+            format!("이미 저는 {}에서 스트리밍 중입니다.", ch_id)
+        }
+        ConnectionErrorCode::CannotFoundServerInfo => {
+            "❔ 서버 정보를 찾을 수 없습니다.".to_string()
+        }
+        ConnectionErrorCode::CannotFoundVoiceChannelInfo => {
+            "❔ 음성 채널 정보를 찾을 수 없습니다.".to_string()
+        }
+    };
+}
+
 //stream함수
 //먼저 유저가 음성 채널에 들어가있는지 검사
-
 pub async fn connection_main(
     uid: &UserId,
     gid: GuildId,
     ctx: &Context,
     search_query: (String, bool),
     request_type: RequestType,
-) -> CommandReturnValue {
+) -> Option<CommandReturnValue> {
     //연결 확인
     let voice_manager = songbird::get(ctx).await.unwrap();
     return match connection_filter(&uid, &ctx.cache.guild(&gid), &voice_manager).await {
         //노래를 틀어도 된다고 판단하면
         Ok(res) => {
-            match voice_manager.join(gid.clone(), res.channel_id).await.1 {
+            let (_voice_node, voice_check) = voice_manager.join(gid.clone(), res.channel_id).await;
+            return match voice_check {
                 Ok(_) => {
-                    return match enqueue_main(res, gid, search_query, request_type).await {
-                        Some(result) => CommandReturnValue::SingleStringWithEmbed(result),
-                        None => CommandReturnValue::SingleString(
-                            "조건에 맞는 검색 결과가 없습니다.".to_string(),
-                        ),
-                    }
+                    Some(
+                        enqueue_main(&ctx, res, gid, search_query, request_type)
+                            .await
+                            //임시 unwrap
+                            .unwrap(),
+                    )
                 }
                 Err(why) => {
-                    error!("Connecting Voice Channel Error: {:#?}", why);
-                    return CommandReturnValue::SingleString(
-                        "🔌 연결하는데 오류가 발생했습니다. 나중에 다시 시도해주세요.".to_string(),
-                    );
+                    error!("{:#?}", why);
+                    Some(CommandReturnValue::SingleString(
+                        "⚠️ 음성 채널에 연결하는데 오류가 발생했습니다. 나중에 다시 시도해주세요."
+                            .to_string(),
+                    ))
                 }
             };
         }
         //연결하는데 오류나면
-        Err(errcode) => match errcode {
-            ConnectionErrorCode::JoinVoiceChannelFirst => {
-                CommandReturnValue::SingleString("⚠️ 먼저 음성 채널에 들어가주세요.".to_string())
-            }
-            ConnectionErrorCode::AlreadyConnectedOtherChannel(ch_id) => {
-                CommandReturnValue::SingleString(format!(
-                    "이미 저는 {}에서 스트리밍 중입니다.",
-                    ch_id
-                ))
-            }
-            ConnectionErrorCode::CannotFoundServerInfo => {
-                CommandReturnValue::SingleString("❔ 서버 정보를 찾을 수 없습니다.".to_string())
-            }
-            ConnectionErrorCode::CannotFoundVoiceChannelInfo => CommandReturnValue::SingleString(
-                "❔ 음성 채널 정보를 찾을 수 없습니다.".to_string(),
-            ),
-        },
+        Err(errcode) => Some(CommandReturnValue::SingleString(errorcode_wraping(errcode))),
     };
 }
 
+//가독성 챙기기 vs 극한의 함수형 코딩
+/*async fn connection_filter1(
+    uid: &UserId,
+    guild: &Option<Guild>,
+    voice_manager: &Songbird,
+) -> Result<RequestInfo, ConnectionErrorCode> {
+    //Cache로부터 불러온 서버 정보가 제대로 불러와졌는지 체크
+    return guild.ok_or(ConnectionErrorCode::CannotFoundServerInfo).and_then(|g| {
+        g.voice_states.get(uid).and_then(|vs| vs.channel_id).ok_or(|usr_chid| {
+
+        })
+    }),
+
+
+    //유저가 음성채널에 없을때
+    if let None = guild.
+}
+*/
 async fn connection_filter(
     uid: &UserId,
     guild: &Option<Guild>,

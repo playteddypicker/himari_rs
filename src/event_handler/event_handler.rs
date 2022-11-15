@@ -7,21 +7,23 @@ use serenity::{
         guild::Guild,
         id::GuildId,
     },
+    prelude::TypeMapKey,
 };
 
 use log::{error, info, warn};
 
 use crate::{
     command_handler::{assign_command, command_handler},
-    event_handler::events,
+    utils::structures::guild_queue,
 };
 
 pub struct DiscordEventHandler;
 
 #[async_trait]
 impl EventHandler for DiscordEventHandler {
-    async fn ready(&self, _: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         info!("{} is now connected.", ready.user.tag());
+        guild_queue::load_guild_multi(&ctx).await;
     }
 
     async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {

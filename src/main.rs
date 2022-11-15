@@ -1,10 +1,15 @@
+use crate::utils::structures::guild_queue;
 use dotenv::dotenv;
 use env_logger;
 use lavalink_rs::LavalinkClient;
 use log::error;
 use serenity::prelude::*;
 use songbird::SerenityInit;
-use std::env;
+use std::{
+    collections::HashMap,
+    env,
+    sync::{Arc, RwLock},
+};
 
 mod command_handler;
 mod event_handler;
@@ -14,6 +19,12 @@ struct Lavalink;
 
 impl TypeMapKey for Lavalink {
     type Value = LavalinkClient;
+}
+
+struct GuildQueueType;
+
+impl TypeMapKey for GuildQueueType {
+    type Value = Arc<RwLock<HashMap<u64, guild_queue::GuildQueue>>>;
 }
 
 #[tokio::main]
@@ -43,9 +54,11 @@ async fn main() {
         .await
         .expect("Error creating client.");
 
+    //global variable을 위해 client에 data를 매달아줌
     {
         let mut data = client.data.write().await;
         data.insert::<Lavalink>(lavalink_client);
+        data.insert::<GuildQueueType>(Arc::new(RwLock::new(HashMap::default())));
     }
 
     if let Err(why) = client.start().await {

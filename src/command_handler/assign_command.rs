@@ -97,6 +97,7 @@ async fn check_updates(ctx: &Context, gid: GuildId) -> UpdateStatus {
         Ok(cmds) => {
             return if cmds.len() == 1 {
                 UpdateStatus::FirstSetting
+            //개수로 판단하는거는 문제가 있음. 기존꺼 삭제하고 하나 추가하면..
             } else if cmds.len() == COMMAND_LIST.commands.len() + 1 {
                 UpdateStatus::LatestVersion
             } else {

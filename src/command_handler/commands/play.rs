@@ -15,7 +15,7 @@ use serenity::{
     },
 };
 
-use crate::utils::music_modules::{stream, stream::RequestType};
+use crate::utils::music_modules::{connection_handler, connection_handler::RequestType};
 
 struct Play;
 
@@ -57,14 +57,15 @@ impl CommandInterface for Play {
             None => false,
         };
 
-        return stream::connection_main(
+        return connection_handler::connection_main(
             &command.user.id,
             gid,
             &ctx,
             (search_string, search_playlist),
             RequestType::Command,
         )
-        .await;
+        .await
+        .unwrap();
     }
 
     fn name(&self) -> String {
