@@ -1,6 +1,9 @@
 use super::enqueue::enqueue_main;
-use super::request_search_query::get_song_main;
+use super::queue_event_handler;
 use crate::command_handler::command_handler::CommandReturnValue;
+use crate::utils::music_modules::stream_handler;
+use crate::utils::structures::guild_queue::PlayStatus;
+use crate::GuildQueueType;
 
 use lavalink_rs::LavalinkClient;
 
@@ -72,19 +75,42 @@ pub async fn connection_main(
 ) -> Option<CommandReturnValue> {
     //연결 확인
     let voice_manager = songbird::get(ctx).await.unwrap();
+
+    //GuildQueue 확인
+    let counter = {
+        let r = ctx.data.read().await;
+        r.get::<GuildQueueType>().expect("poisoned data").clone()
+    };
+    let mut guilds = counter.write().await;
+    let gq = guilds.get_mut(&gid.0).unwrap();
+
     return match connection_filter(&uid, &ctx.cache.guild(&gid), &voice_manager).await {
         //노래를 틀어도 된다고 판단하면
         Ok(res) => {
-            let (_voice_node, voice_check) = voice_manager.join(gid.clone(), res.channel_id).await;
+            let (voice_node, voice_check) = voice_manager.join(gid.clone(), res.channel_id).await;
+            {
+                queue_event_handler::add_current_event(
+                    &voice_node,
+                    gq,
+                    res.channel_id.clone(),
+                    &ctx,
+                )
+                .await;
+            }
+
             return match voice_check {
-                Ok(_) => {
-                    Some(
-                        enqueue_main(&ctx, res, gid, search_query, request_type)
-                            .await
-                            //임시 unwrap
-                            .unwrap(),
-                    )
-                }
+                Ok(_) => match enqueue_main(gq, res, search_query, request_type).await {
+                    //enqueue를 완료했을때
+                    Ok(result_cmdvalue) => {
+                        if let PlayStatus::Idle = gq.play_status {
+                            if gq.queue.len() > 0 {
+                                stream_handler::start_stream(gq, ctx, voice_node).await;
+                            }
+                        }
+                        result_cmdvalue
+                    }
+                    Err(errmsg) => Some(CommandReturnValue::SingleString(errmsg)),
+                },
                 Err(why) => {
                     error!("{:#?}", why);
                     Some(CommandReturnValue::SingleString(

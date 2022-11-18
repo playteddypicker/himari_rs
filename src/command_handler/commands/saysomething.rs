@@ -17,10 +17,11 @@ use rand::Rng;
 struct SaySomething;
 
 //나중에 json으로 따로 저장..
-const HIMARI_SCRIPT_LIST: [&'static str; 4] = [
+const HIMARI_SCRIPT_LIST: [&'static str; 5] = [
     "후훗. 기다리고 있었습니다, 선생님.",
     "⋯⋯아. 지금 데이터를 분석 중이니 잠시만 기다려주세요.",
     "데카그라마톤⋯⋯ 성가신 상대입니다.",
+    "밀레니엄의 초 천재 병약 미소녀 해커가 당도했답니다.. 후훗.",
     "버러지 컽~!",
 ];
 

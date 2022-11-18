@@ -6,7 +6,7 @@ use std::process::Stdio;
 use std::time::Duration;
 
 #[derive(Debug)]
-struct JsonError {
+pub struct JsonError {
     error: serde_json::Error,
     parsed_text: String,
 }
@@ -19,12 +19,6 @@ pub struct SongMetadata {
     pub duration: SongDuration,
     pub thumbnail: String,
     pub author: SongAuthor,
-}
-
-impl Clone for SongMetadata {
-    fn clone(&self) -> SongMetadata {
-        *self
-    }
 }
 
 pub struct SongAuthor {
@@ -137,7 +131,7 @@ pub async fn yt_single(search_string: String) -> Result<Value, JsonError> {
         .await
         .unwrap();
 
-    let o_vec = ytdl_output.stdout;
+    let o_vec = ytdl_output.stderr;
 
     let end = (&o_vec)
         .iter()

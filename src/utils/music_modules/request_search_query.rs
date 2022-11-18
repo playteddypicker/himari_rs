@@ -61,8 +61,6 @@ fn match_request_type(search_string: &String) -> SearchRequestType {
     };
 }
 
-async fn get_song_stream(search_url: String) {}
-
 //여기서는 url 구분하고 그거에 맞는
 pub async fn request_main(search_query: (String, bool)) -> Option<SongMetadata> {
     return match match_request_type(&search_query.0) {

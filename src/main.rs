@@ -5,11 +5,8 @@ use lavalink_rs::LavalinkClient;
 use log::error;
 use serenity::prelude::*;
 use songbird::SerenityInit;
-use std::{
-    collections::HashMap,
-    env,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, env, sync::Arc};
+use tokio::sync::RwLock;
 
 mod command_handler;
 mod event_handler;

@@ -74,9 +74,9 @@ pub async fn load_guild_multi(ctx: &Context) {
         data_read.get::<GuildQueueType>().unwrap().clone()
     };
     {
+        let mut counter_lock = counter.write().await;
         //rust docs의 RwLock - write()메소드 체크.
         for gid in ctx.cache.guilds().clone().iter() {
-            let mut counter_lock = counter.write().expect("RwLock Poisoned");
             counter_lock.entry(gid.0).or_insert(GuildQueue::new(gid.0));
         }
     }

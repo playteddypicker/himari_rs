@@ -66,6 +66,7 @@ impl CommandInterface for Play {
         )
         .await
         .unwrap();
+        //requesttype이 command이므로 None이 반환될 수가 없음
     }
 
     fn name(&self) -> String {
