@@ -57,16 +57,24 @@ impl CommandInterface for Play {
             None => false,
         };
 
-        return connection_handler::connection_main(
+        let start = std::time::SystemTime::now();
+        let res = connection_handler::connection_main(
             &command.user.id,
             gid,
             &ctx,
             (search_string, search_playlist),
             RequestType::Command,
+            &start,
         )
         .await
         .unwrap();
         //requesttype이 command이므로 None이 반환될 수가 없음
+        log::info!(
+            "total time elapsed: {}s",
+            start.elapsed().unwrap().as_secs()
+        );
+
+        res
     }
 
     fn name(&self) -> String {

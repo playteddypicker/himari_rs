@@ -11,7 +11,7 @@ rand = "0.8.5"
 log = "0.4.17"
 env_logger = "0.9.1"
 lazy_static = "1.4.0"
-songbird = "0.3.0"
+songbird = { version = "0.3.0", features = ["driver", "serenity", "gateway", "rustls", "builtin-queue"]}
 lavalink-rs = {git = "https://gitlab.com/vicky5124/lavalink-rs",  branch = "master", features = ["rustls"]}
 regex = "1"
 serde_json = "1"

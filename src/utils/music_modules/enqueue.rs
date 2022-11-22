@@ -12,19 +12,25 @@ use crate::{
     utils::{music_modules::parse_song_info::SongMetadata, structures::guild_queue::GuildQueue},
 };
 
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 pub async fn enqueue_main(
-    gq: &mut GuildQueue,
+    guild_queue: Arc<Mutex<GuildQueue>>,
     req: RequestInfo,
     search_query: (String, bool),
     request_type: RequestType,
 ) -> Result<Option<CommandReturnValue>, String> {
-    let request = request_search_query::request_main(search_query.clone()).await;
+    let (mut gq, request) = tokio::join!(
+        guild_queue.lock(),
+        request_search_query::request_main(search_query.clone())
+    );
 
     let return_type = match request {
         Some(song) => {
             //request_type에 대한 handling
             let embed = enqueued_embed(&song, req, search_query.1);
-            gq.queue.push(song);
+            gq.queue.push_back(song);
             match request_type {
                 RequestType::Command | RequestType::PlaylistCommand => {
                     Ok(Some(CommandReturnValue::SingleStringWithEmbed((
@@ -41,6 +47,7 @@ pub async fn enqueue_main(
         }
         None => Err("조건에 맞는 검색 결과가 없습니다.".to_string()),
     };
+    drop(gq);
     return_type
 }
 

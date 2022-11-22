@@ -6,6 +6,7 @@ use log::error;
 use serenity::prelude::*;
 use songbird::SerenityInit;
 use std::{collections::HashMap, env, sync::Arc};
+use tokio::sync::Mutex;
 use tokio::sync::RwLock;
 
 mod command_handler;
@@ -21,7 +22,7 @@ impl TypeMapKey for Lavalink {
 struct GuildQueueType;
 
 impl TypeMapKey for GuildQueueType {
-    type Value = Arc<RwLock<HashMap<u64, guild_queue::GuildQueue>>>;
+    type Value = Arc<RwLock<HashMap<u64, Arc<Mutex<guild_queue::GuildQueue>>>>>;
 }
 
 #[tokio::main]

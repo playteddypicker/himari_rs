@@ -7,6 +7,12 @@ use serenity::model::{
     id::{ChannelId, GuildId},
 };
 
+use songbird::input::Input;
+
+use std::collections::VecDeque;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 pub enum LoopMode {
     NormalPlay,
     AutoPlay,
@@ -31,7 +37,8 @@ pub struct GuildQueue {
     pub guild_id: u64, //to get guild info from Guild::get().
     pub streaming_channel: Option<ChannelId>,
     pub command_channel: Option<ChannelId>,
-    pub queue: Box<Vec<SongMetadata>>,
+    pub queue: Box<VecDeque<SongMetadata>>,
+    pub streaming_queue: usize,
     pub prev_queue: Box<Vec<SongMetadata>>, //max 10
     pub play_status: PlayStatus,
     pub volume: f32, //0~1까지
@@ -39,12 +46,13 @@ pub struct GuildQueue {
 }
 
 impl GuildQueue {
-    fn new(gid: u64) -> Self {
-        GuildQueue {
+    fn new(gid: u64) -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(GuildQueue {
             guild_id: gid,
             streaming_channel: None,
             command_channel: None,
-            queue: Box::new(Vec::new()),
+            queue: Box::new(VecDeque::new()),
+            streaming_queue: 0,
             prev_queue: Box::new(Vec::new()),
             play_status: PlayStatus::Idle,
             volume: 0.3,
@@ -53,7 +61,11 @@ impl GuildQueue {
                 duration_limit: 0,
                 ban_keywords: Box::new(Vec::new()),
             },
-        }
+        }))
+    }
+    pub fn init(&mut self) {
+        self.queue = Box::new(VecDeque::new());
+        self.streaming_queue = 0;
     }
     async fn pause() {}
     async fn stop() {}
