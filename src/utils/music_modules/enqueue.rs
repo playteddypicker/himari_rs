@@ -1,6 +1,4 @@
 use serenity::builder::CreateEmbed;
-use serenity::client::Context;
-use serenity::model::id::GuildId;
 
 use super::{
     connection_handler::{RequestInfo, RequestType},

@@ -57,11 +57,11 @@ pub async fn connection_main(
         let r = ctx.data.read().await;
         r.get::<GuildQueueType>().expect("poisoned data").clone()
     };
-    let (voice_manager, mut guilds) = tokio::join!(songbird::get(ctx), counter.write());
+    let (voice_manager, guilds) = tokio::join!(songbird::get(ctx), counter.write());
     let guild_queue = guilds.get(&gid.0).unwrap();
 
     if let None = voice_manager {
-        return Some(CommandReturnValue::SingleString(errorcode_wraping(
+        return Some(CommandReturnValue::SingleString(errorcode_wrapping(
             ConnectionErrorCode::CannotFoundServerInfo,
         )));
     }
@@ -69,20 +69,17 @@ pub async fn connection_main(
     let vm = voice_manager.unwrap();
 
     return match connection_filter(&uid, &ctx.cache.guild(&gid), &vm).await {
-        Err(errcode) => Some(CommandReturnValue::SingleString(errorcode_wraping(errcode))),
+        Err(errcode) => Some(CommandReturnValue::SingleString(errorcode_wrapping(
+            errcode,
+        ))),
         Ok(res) => {
             //음성채널 정보를 가져옴. 연결 안되어있으면 연결함.
             let (voice_node, voice_check) = vm.join(gid.clone(), res.channel_id).await;
 
             //이벤트핸들러 추가가 어떻게 작동되는지는 모르겠는데.. 나중에 디버깅 해봐야함
             if let ConnectionSuccessType::NewConnect = res.connection_type {
-                queue_event_handler::add_current_event(
-                    &voice_node,
-                    guild_queue.clone(),
-                    res.channel_id.clone(),
-                    &ctx,
-                )
-                .await;
+                queue_event_handler::add_current_event(&voice_node, guild_queue.clone(), &ctx)
+                    .await;
             }
 
             return match voice_check {
@@ -112,7 +109,7 @@ pub async fn connection_main(
     };
 }
 
-fn errorcode_wraping(errcode: ConnectionErrorCode) -> String {
+fn errorcode_wrapping(errcode: ConnectionErrorCode) -> String {
     return match errcode {
         ConnectionErrorCode::JoinVoiceChannelFirst => {
             "⚠️ 먼저 음성 채널에 들어가주세요.".to_string()

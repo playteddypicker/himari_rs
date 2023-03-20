@@ -28,7 +28,7 @@ pub async fn stream_main(
             if let Err(why) = start_stream(&mut gq, &mut voice_lock, &start).await {
                 return Err(why);
             }
-            gq.play_status = PlayStatus::NowPlaying(LoopMode::NormalPlay);
+            gq.play_status = PlayStatus::NowPlaying;
         } else {
             warn!(
                 "Requested Playing query, but queue is empty on {}. unwrapping..",
@@ -57,7 +57,7 @@ async fn start_stream(
     return match get_stream(gq.queue[0].url.clone()).await {
         Ok(res_stream) => {
             log::info!("getting stream: {}s", start.elapsed().unwrap().as_secs());
-            voice_manager.enqueue_source(res_stream);
+            gq.np_track = Some(voice_manager.enqueue_source(res_stream));
             gq.streaming_queue += 1;
             Ok(())
         }

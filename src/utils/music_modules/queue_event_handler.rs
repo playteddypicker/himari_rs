@@ -3,18 +3,14 @@ use songbird::{
     Call, Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent,
 };
 
-use serenity::{
-    async_trait,
-    client::Context,
-    http::Http,
-    model::id::{ChannelId, GuildId},
-};
+use serenity::{async_trait, client::Context, http::Http, model::id::ChannelId};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use super::super::structures::guild_queue::GuildQueue;
 use super::stream_handler::concat_stream;
 
+use log::error;
 //이벤트 종류
 //노래가 끝났을때(혹은 강제종료)
 struct TrackEndNotifier {
@@ -45,13 +41,18 @@ impl VoiceEventHandler for TrackEndNotifier {
     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
         let (mut gq_lock, mut voice_manager) =
             tokio::join!(self.guild_queue.lock(), self.voice_manager.lock());
+
         if let EventContext::Track(track_list) = ctx {
             log::info!("Song has been finished");
             log::info!("{:#?}", track_list);
         }
-        concat_stream(&mut gq_lock, &mut voice_manager).await;
+
+        concat_stream(&mut gq_lock, &mut voice_manager)
+            .await
+            .unwrap_or(());
         gq_lock.queue.pop_front();
         gq_lock.streaming_queue -= 1;
+
         drop(gq_lock);
         drop(voice_manager);
         None
@@ -74,7 +75,6 @@ impl VoiceEventHandler for TrackPlayNotifier {
 pub async fn add_current_event(
     voice_node: &Arc<Mutex<Call>>,
     gq: Arc<Mutex<GuildQueue>>,
-    ch_id: ChannelId,
     ctx: &Context,
 ) {
     let mut handle = voice_node.lock().await;

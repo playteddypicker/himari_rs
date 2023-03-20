@@ -4,7 +4,7 @@ use env_logger;
 use lavalink_rs::LavalinkClient;
 use log::error;
 use serenity::prelude::*;
-use songbird::SerenityInit;
+use songbird::{Config, SerenityInit};
 use std::{collections::HashMap, env, sync::Arc};
 use tokio::sync::Mutex;
 use tokio::sync::RwLock;
@@ -48,7 +48,7 @@ async fn main() {
 
     let mut client = Client::builder(&client_token, intents)
         .event_handler(event_handler::event_handler::DiscordEventHandler)
-        .register_songbird()
+        .register_songbird_from_config(Config::default().preallocated_tracks(2))
         .await
         .expect("Error creating client.");
 
